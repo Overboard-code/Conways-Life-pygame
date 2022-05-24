@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
@@ -30,29 +31,31 @@ rules = '''
 #CONSTANTS
 #Set up colors for ease of use  Change them to suit
 bkgnd_color = 'grey88' # also used for 'empty' cells
-lonely = 'deepskyblue'
+lonely = 'black'
 crowded = 'brown4'
 adult ='forestgreen'
 new_baby = 'chartreuse2'
 top_color = 'darkgreen' 
+slider_hndl_color=webcolors.name_to_rgb(top_color)  # Because the slide only takes RGB tuple
 text_color = 'snow'
 shadows = 'grey23'
 hover_color = 'grey46'
 click_color = 'grey66'
 cell_colors = [bkgnd_color,new_baby,adult,lonely,crowded]
 # Window sizes
-thesize = 85   # This decides how large the window will be 
-thehigh = thesize - 6
-cellSize = 10
-buttonSize = 100  # Play with this until they look right
+thesize = 80   # This decides how large the window will be 
+thehigh = thesize - 5
+Grid = True  #  True to draw a Grid on the surface
+cellSize = 12
+theBottom = cellSize*6
+buttonSize = cellSize*9  # Play with this until they look right
 buttonSlots = 8   # allows even spacing of buttons without fancy math
 windowsize = thesize*cellSize
-bottomRow = windowsize-60  # Spaces buttons off of the bottom  Assumes butons are 40 tall
+bottomRow = windowsize-(5*cellSize)  # Spaces buttons off of the bottom  Assumes butons are 40 tall
 #-------------------
 # global variables  Changes here change the game 
 global FPS
 FPS = 0
-initFPS = 10  # for the slider
 global generation
 generation = 0
 global Single
@@ -63,8 +66,9 @@ global run
 run = False  
 global possibilities
 possibilities = [0, 0, 0, 2]  # Decides how full the random board will be  Add more zeros for a sparser board
+initFPS = 10  # for the slider
 global minF
-minF = 1  # for the slider 
+minF = 2  # for the slider 
 global maxF
 maxF = 88  # for the slider 
 #-------------------
@@ -79,9 +83,13 @@ tempboard = np.zeros((thesize,thesize),dtype=int)
 pygame.init()
 global surface
 surface = pygame.display.set_mode((windowsize, windowsize)) # Define the surface for the simulation to run on
+def drawGrid():
+    [pygame.draw.line(surface, pygame.Color('darkslategray'), (x, 0), (x, windowsize-theBottom)) for x in range(0, windowsize, cellSize)]
+    [pygame.draw.line(surface, pygame.Color('darkslategray'), (0, y), (windowsize, y)) for y in range(0, windowsize-theBottom+cellSize, cellSize)]
 pygame.display.set_caption('Conway\'s Game of Life')
 surface.fill(bkgnd_color) # Fill the screen bkgnd_color
-pygame.display.update()
+if Grid:
+    drawGrid()      
 clock = pygame.time.Clock()
 gui_font = pygame.font.Font(None,30)
 
@@ -91,6 +99,7 @@ def runFlop():  # Key RETURN
     global Single
     run = not run
     Single = False
+    
 def setSingle(): # key SPACE
     global run
     global Single
@@ -98,6 +107,7 @@ def setSingle(): # key SPACE
     run = True
     Single = True
     flop = True
+    
 def newRandom():  # Key 'r'
     global generation
     global board
@@ -108,6 +118,7 @@ def newRandom():  # Key 'r'
     for r in range(thesize):
         for c in range(thehigh):
             board[r,c] = random.choice(possibilities)
+            
 def boardClear(): # Key 'c'
     global generation
     global board
@@ -116,6 +127,7 @@ def boardClear(): # Key 'c'
     generation = 0
     pygame.display.set_caption('Conway\'s Game of Life')
     board.fill(0)
+    
 def game_quit():  # key ESCAPE
     pygame.quit()
     sys.exit()
@@ -135,70 +147,85 @@ def isLive(cell):
 #Function for returning which row and column the mouse is in
 def where():
     x, y = pygame.mouse.get_pos()
-    return (whichSlot(x), whichSlot(y))
-
-#Function to run Conway's Rules agains a cell board[r,c]
-def runConwayRules(r,c):
-    adj = status = 0
+    return (whichSlot(x), whichSlot(y)+1)
+    
+# Function returns the count of live neighbors around a location on the board
+#    1 0 0
+#    2 1 0
+#    0 0 0  creates an array like [1,0,0,2,0,0,0,0] for a count of 2 
+#           the cell itself at offset (0,0) isn't counted 
+def neighbor_counter(position):
+    neighbors = np.zeros(8,dtype=int)  # Any one cell can have up to 8 neighbor spots 
+    a = 0                       # index to set cells to neighbor values
+    rangeX = range(0, thesize)  # X bounds
+    rangeY = range(0, thesize)  # Y bounds
     for dx in range(-1, 2):
         for dy in range(-1, 2):
-            rangeX = range(0, board.shape[0])  # X bounds
-            rangeY = range(0, board.shape[1])  # Y bounds          
-            (newX, newY) = (r+dx, c+dy)  # adjacent cell            
-            if (newX in rangeX) and (newY in rangeY) and (dx, dy) != (0, 0):
-                if isLive(board[newX, newY]):
-                    adj += 1  
-    if board[r,c] == 1 or board[r,c] == 2: # any currently live cell
-        if adj < 2:   # with less than two 'live' neighbors
+            (newX, newY) = (position[0]+dx, position[1]+dy)  # adjacent cell
+            if (newX in rangeX) and (newY in rangeY) and (newX,newY) != position:
+                neighbors[a] = board[newX, newY]
+                a += 1               
+    return np.count_nonzero(neighbors)
+    
+#Function to run Conway's Rules agains a cell board[r,c]
+def runConwayRules(r,c):
+    liveNeighbors = status = 0
+    #liveNeighbors = np.count_nonzero(board[r-1:r+2, c-1:c+2]) - ((0,1)[board[r, c]>0]) # Check around using slice of array Minus this cell, if alive
+    liveNeighbors = neighbor_counter((r,c))
+    if isLive(board[r,c]): # This Cell is now Live
+        if liveNeighbors < 2:   # with less than two 'live' neighbors
            status = 3 # dies alone 
-        if adj > 3: # With more than three 'live' neighbors
+        if liveNeighbors > 3: # With more than three 'live' neighbors
             status = 4 # dies crowded
-        if adj == 2 or adj == 3: # with 2 or 3 'live' neighbors
+        if liveNeighbors == 2 or liveNeighbors == 3: # with 2 or 3 'live' neighbors
             status = 2 # lives on to the next generation 
-    if board[r,c] == 0: # any empty spot
-         if adj == 3: #  with exactly three 'live' neighbors
-            status = 1 # becomes a new live cell
+    elif liveNeighbors == 3: # Not currently Live but has excatly tree neighbors
+            status = 1 # becomes a baby live cell
     return status
 
 # make a cell on the grid 
-def drawCell(ro, col, colour):
-    myXY = (ro*cellSize, col*cellSize)
-    circle_radius = int(cellSize/2)
+def drawCell(row, col):
+    colour = cell_colors[board[row,col]]
+    myXY = (row*cellSize+int(cellSize/2), col*cellSize-int(cellSize/2))
+    circle_radius = int((cellSize-3)/2)
     border_width = 0 # 0 gives a filled circle
     pygame.draw.circle(surface, colour, myXY, circle_radius, border_width)
  
 def makeAButton(x,label,routine):  # Add a pygame_widget button along the bottom 
-    return Button(surface,x,bottomRow,buttonSize,40,
+    return Button(surface,x,bottomRow,buttonSize,3*cellSize,
     text=label,onClick=routine,
-    font=gui_font,textColour=text_color,font_size=16,
-    margin=20,  # Minimum distance between text/image and edge of button
+    font=gui_font,textColour=text_color,font_size=int(1.5*cellSize),
+    margin=cellSize,  # Minimum distance between text/image and edge of button
     inactiveColour=top_color,  # Colour of button when not being interacted with
     hoverColour=hover_color,  # Colour of button when being hovered over
     pressedColour=click_color,  # Colour of button when being clicked
     shadowDistance=5,shadowColor=shadows,
     radius=12 ) # Radius of border corners (leave empty for not curved)
-  
+
 #Main loop
 run = False
 tictoc = True
 Single = False
 flop = True
-# Define a bunch of pygame widgets  I wrote this at version 1
+# Define a bunch of pygame widgets  I wrote this at version 1.0.0 of pygame_widgets
 #  https://libraries.io/pypi/pygame-widgets
+slotSize = windowsize/buttonSlots
+rndm_button = makeAButton(int(slotSize*0+3),'Random',newRandom)
+play_button = makeAButton(int(slotSize*1),' >/| | ',runFlop)
+step_button = makeAButton(int(slotSize*2),'Once',setSingle)
+quit_button = makeAButton(int(slotSize*3),"Quit",game_quit)
+clear_button = makeAButton(int(slotSize*4) ,"Clear",boardClear)
 
-rndm_button = makeAButton(int(windowsize/buttonSlots*0+3),'Random',newRandom)
-play_button = makeAButton(int(windowsize/buttonSlots*1),' >/| | ',runFlop)
-step_button = makeAButton(int(windowsize/buttonSlots*2),'Once',setSingle)
-quit_button = makeAButton(int(windowsize/buttonSlots*3),"Quit",game_quit)
-clear_button = makeAButton(int(windowsize/buttonSlots*4) ,"Clear",boardClear)
-FPS_slider = Slider(surface,int(windowsize/buttonSlots*5+20),bottomRow+15, 200,15, 
-    min=2,max=88,handleColour=webcolors.name_to_rgb(top_color),initial=initFPS,handleRadius=7)
+FPS_slider = Slider(surface,int(slotSize*5+20),bottomRow+15, 200,15, 
+    min=minF,max=maxF,handleColour=slider_hndl_color,initial=initFPS,handleRadius=7)
  
 while 1:
     #Draw the board as cells
+    if Grid:
+        drawGrid()    #   Remove if you don't like grids
     for r in range(thesize):
-        for c in range(thehigh):
-                drawCell(r, c, cell_colors[board[r,c]]) # cell value chooses color 
+        for c in range(thehigh): # thehigh leaves room for buttons 
+                drawCell(r, c) # cell value chooses color 
     #Process Events    
     events =  pygame.event.get()      
     pw.update(events) # Check for button events for pygame_widgets
