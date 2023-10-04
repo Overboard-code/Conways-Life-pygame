@@ -14,7 +14,7 @@ The game is different from many versions I have seen.  It uses colors to show th
 
 Empty or dead(0)  Default state </br>
 New baby(1)       Just born because 3 and only 3 'live' cells were adjacent to a dead cell </br>
-adult(2)          surived at least on round of the game, a grown up baby has 2 or 3 'live' adjacent cells </br>
+adult(2)          surived at least one round of the game, a grown up baby has 2 or 3 'live' adjacent cells </br>
 dying of lonliness(3)  is and adult or baby with less than 2 adjeacent 'live' cells </br>
 dying of crowding(4)  has more than 3 adjacent live cells </br>
 
