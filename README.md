@@ -8,6 +8,7 @@ pygame </br>
 pygame-widgets </br>
 numpy </br>
 and webcolors </br>
+![Conway_shot](https://github.com/Overboard-code/Conways-Life-pygame/assets/53097137/585215c1-e140-416d-93c5-37feaa69fc25)
 
 I used numpy arrays because this whole game is just a couple of arrays and numpy arrays are way faster/cheaper than pythons built in arrays.  
 The game is different from many versions I have seen.  It uses colors to show the state of the cells.  Cells have 4 states: 
