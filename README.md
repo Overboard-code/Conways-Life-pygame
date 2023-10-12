@@ -10,10 +10,9 @@ You'll need to install: </br>
 <li>numpy </li>
  <li>webcolors </li>
 </ul>
-![Conway_shot](https://github.com/Overboard-code/Conways-Life-pygame/assets/53097137/b4e37e02-3186-4e27-a6c4-31be5e49fd19)
 
 I used numpy arrays because this whole game is just a couple of arrays and numpy arrays are way faster/cheaper than pythons built in arrays.  
-The game is different from many versions I have seen.  It uses colors to show the state of the cells.  Cells have 4 states: 
+The game is different from many versions I have seen.  It uses colors to show the state of the cells.  <br>Cells have 4 states: 
 <ol start="0">
 <li><b>Empty or dead</b>  (Default state) </li>
 <li><b>New Baby</b>      Just born because 3 and only 3 'live' cells were adjacent to a dead cell </li>
@@ -21,6 +20,8 @@ The game is different from many versions I have seen.  It uses colors to show th
 <li><b>Dying of lonliness</li></b>  is and adult or baby with less than 2 adjeacent 'live' cells </li>
 <li><b>Dying of crowding</b>  has more than 3 adjacent live cells </li>
 </ol>
+ <img src="https://github.com/Overboard-code/Conways-Life-pygame/assets/53097137/31089641-d28a-4ebd-a0c3-babf1ddb2e8e" >
+
 I didn't use parameters to define colors and sizes  Just constants in the code.  Add parms if you like. 
 By the way pygame_widgets didn't document the vertical=True/False parameter for sliders. 
 
